@@ -8,7 +8,7 @@
  *   - Use "stale-while-revalidate" for the main HTML so users get
  *     the newest version on refresh but nothing ever fails offline
  */
-const CACHE_VERSION = 'cricket-scorer-v12.1';
+const CACHE_VERSION = 'cricket-scorer-v13';
 const APP_SHELL = [
   './',
   './index.html',
