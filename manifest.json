@@ -1,0 +1,33 @@
+{
+  "name": "Cricket Scorer",
+  "short_name": "Cricket Scorer",
+  "description": "Score a full cricket match from your phone or laptop — batting, bowling, extras, second-innings target chase and shareable scorecard.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e5e5e5",
+  "theme_color": "#2c3e50",
+  "categories": ["sports", "utilities", "productivity"],
+  "lang": "en-ZA",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
