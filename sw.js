@@ -8,7 +8,7 @@
  *   - Use "stale-while-revalidate" for the main HTML so users get
  *     the newest version on refresh but nothing ever fails offline
  */
-const CACHE_VERSION = 'cricket-scorer-v1';
+const CACHE_VERSION = 'cricket-scorer-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -47,19 +47,18 @@ self.addEventListener('fetch', (event) => {
   // the user always gets the latest deployed version when online,
   // but a cached copy loads instantly when offline.
   if (req.mode === 'navigate' || req.destination === 'document') {
-    event.respondWith(
-      caches.open(CACHE_VERSION).then((cache) =>
-        cache.match(req).then((cached) => {
-          const networkFetch = fetch(req).then((response) => {
-            if (response && response.ok) cache.put(req, response.clone());
-            return response;
-          }).catch(() => cached);
-          return cached || networkFetch;
-        })
-      )
-    );
-    return;
-  }
+  event.respondWith(
+    fetch(req)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_VERSION)
+          .then(cache => cache.put(req, copy));
+        return response;
+      })
+      .catch(() => caches.match(req))
+  );
+  return;
+}
 
   // For everything else (icons, manifest, etc.) use cache-first
   event.respondWith(
