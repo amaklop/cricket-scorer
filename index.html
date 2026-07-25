@@ -1283,6 +1283,76 @@
         animation: pulse 0.8s ease;
       }
 
+      .over-complete {
+          animation: overCelebration 2s ease;
+      }
+
+      @keyframes overCelebration {
+          0% {
+              background: #ececec;
+          }
+
+          20% {
+              background: #f1c40f;
+          }
+
+          40% {
+              background: #27ae60;
+          }
+
+          60% {
+              background: #f1c40f;
+          }
+
+          100% {
+              background: #ececec;
+          }
+      }
+
+      .over-banner {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: #27ae60;
+          color: white;
+          padding: 20px 40px;
+          border-radius: 16px;
+          font-size: 36px;
+          font-weight: 800;
+          letter-spacing: 3px;
+          z-index: 5000;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+          animation: overPopup 2s ease forwards;
+          pointer-events: none;
+      }
+
+      @keyframes overPopup {
+          0% {
+              opacity: 0;
+              transform: translate(-50%, -50%) scale(0.5);
+          }
+
+          15% {
+              opacity: 1;
+              transform: translate(-50%, -50%) scale(1.2);
+          }
+
+          25% {
+              transform: translate(-50%, -50%) scale(1);
+          }
+
+          85% {
+              opacity: 1;
+          }
+
+          100% {
+              opacity: 0;
+              transform: translate(-50%, -50%) scale(1.1);
+          }
+      }
+
+
       @keyframes pulse {
 
         0%,
@@ -1293,6 +1363,21 @@
         50% {
           transform: scale(1.03);
         }
+      }
+
+      .bowler-change-required {
+          animation: bowlerChange 1s infinite;
+      }
+
+      @keyframes bowlerChange {
+          0%,100% {
+              background:#16a085;
+          }
+
+          50% {
+              background:#f1c40f;
+              color:#2c3e50;
+          }
       }
 
       .modal-backdrop {
@@ -1656,13 +1741,37 @@
           }
 
           .pad-grid button {
-              height: 40px;
+              height: 60px;
               border: none;
               border-radius: 10px;
-              font-size: 18px;
-              font-weight: 600;
-              background: #748da1;
+              font-size: 22px;
+              font-weight: 700;
+              background: #3498db;
               color: white;
+              cursor: pointer;
+              touch-action: manipulation;
+              -webkit-tap-highlight-color: transparent;
+              transition:
+                  transform 0.08s ease,
+                  filter 0.12s ease,
+                  background-color 0.12s ease,
+                  box-shadow 0.12s ease;
+          }
+
+          .pad-grid button:active {
+              transform: scale(0.82);
+              filter: brightness(0.65);
+              box-shadow:
+                  inset 0 4px 8px rgba(0,0,0,0.35);
+          }
+
+          .pad-grid button.flash {
+              background: #27ae60 !important;
+              color: white !important;
+              transform: scale(1.15);
+              box-shadow:
+                  0 0 0 5px rgba(39,174,96,0.35),
+                  0 4px 12px rgba(0,0,0,0.25);
           }
 
         .extras-block {
@@ -1907,8 +2016,8 @@
         }
 
         .mode-btn {
-          padding: 5px 2px;
-          font-size: 10px;
+          padding: 4px 2px;
+          font-size: 12px;
         }
 
         .bowler-header,
@@ -2166,16 +2275,14 @@
           </div>
 
           <div class="pad-grid">
-              <button onclick="scoreCurrentBatsman(0)">0</button>
-              <button onclick="scoreCurrentBatsman(1)">1</button>
-              <button onclick="scoreCurrentBatsman(2)">2</button>
-
-              <button onclick="scoreCurrentBatsman(3)">3</button>
-              <button onclick="scoreCurrentBatsman(4)">4</button>
-              
-              <button onclick="scoreCurrentBatsman(6)">6</button>
-              <button onclick="outCurrentBatsman()">OUT</button>
-              <button onclick="retireCurrentBatsman()">RH</button>
+              <button onclick="flashButton(this); scoreCurrentBatsman(0)">0</button>
+              <button onclick="flashButton(this); scoreCurrentBatsman(1)">1</button>
+              <button onclick="flashButton(this); scoreCurrentBatsman(2)">2</button>
+              <button onclick="flashButton(this); scoreCurrentBatsman(3)">3</button>
+              <button onclick="flashButton(this); scoreCurrentBatsman(4)">4</button>
+              <button onclick="flashButton(this); scoreCurrentBatsman(6)">6</button>
+              <button onclick="flashButton(this); outCurrentBatsman()">OUT</button>
+              <button onclick="flashButton(this); retireCurrentBatsman()">RH</button>
           </div>
       </div>
 
@@ -2925,16 +3032,15 @@
 
           btn.classList.remove('flash');
           void btn.offsetWidth;
-
           btn.classList.add('flash');
 
           if (navigator.vibrate) {
-              navigator.vibrate(15);
+              navigator.vibrate(20);
           }
 
           setTimeout(() => {
               btn.classList.remove('flash');
-          }, 220);
+          }, 250);
       }
 
       function addBatsmanRuns(rowIndex, runs) {
@@ -3140,10 +3246,29 @@
       }
 
       function flashOversDisplay() {
-        const el = document.getElementById('sb-overs');
-        el.classList.add('over-end-flash');
-        setTimeout(() => el.classList.remove('over-end-flash'), 800);
-      }
+
+            const el = document.getElementById('sb-overs');
+            el.classList.add('over-end-flash');
+
+            setTimeout(() => {
+                el.classList.remove('over-end-flash');
+            }, 800);
+
+            // Only prompt for next bowler when bowlers are being tracked
+            if (appMode !== 'batting') {
+
+                const banner =
+                    document.getElementById('current-bowler-banner');
+
+                banner.classList.add('bowler-change-required');
+                banner.innerHTML =
+                    '⚠️ OVER COMPLETE - SELECT NEXT BOWLER';
+            }
+
+            if (appMode === 'full') {
+                  currentBowlerIndex = null;
+              }
+        }
 
       function toggleOut(rowIndex) {
         const b = batsmen[rowIndex],
@@ -3306,11 +3431,21 @@
       }
 
       function setCurrentBowler(index) {
-        currentBowlerIndex = index;
-        buildAll();
-        const name = bowlers[index].name || `Bowler ${index + 1}`;
-        showStatus(`${name} is now bowling`);
-        saveState();
+
+          currentBowlerIndex = index;
+
+          document
+              .getElementById('current-bowler-banner')
+              .classList.remove('bowler-change-required');
+
+          buildAll();
+
+          const name =
+              bowlers[index].name || `Bowler ${index + 1}`;
+
+          showStatus(`${name} is now bowling`);
+
+          saveState();
       }
 
       function setOnStrike(index) {
