@@ -105,6 +105,18 @@
         display: none;
       }
 
+      .current-over-display {
+          background: #f5f0e6;
+          color: #2c3e50;
+          font-weight: 700;
+          text-align: center;
+          padding: 10px;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          font-size: 18px;
+          letter-spacing: 2px;
+      }
+
       .bowling-panel {
         display: none;
       }
@@ -194,6 +206,23 @@
         font-style: italic;
         margin-top: 6px;
         text-align: center;
+      }
+
+      #bowling-pad button {
+          background: #16a085;
+      }
+
+      #bowling-pad button:nth-child(7) {
+          background: #e74c3c;
+      }
+
+      #bowling-pad button:nth-child(8),
+      #bowling-pad button:nth-child(9) {
+          background: #f39c12;
+      }
+
+      #bowling-pad button:nth-child(10) {
+          background: #8e44ad;
       }
 
       .settings-panel {
@@ -2270,21 +2299,42 @@
 
 
       <div id="mobile-scoring-pad" class="mobile-scoring-pad">
-          <div class="pad-player" id="pad-player-name">
-              Select Striker
-          </div>
 
-          <div class="pad-grid">
-              <button onclick="flashButton(this); scoreCurrentBatsman(0)">0</button>
-              <button onclick="flashButton(this); scoreCurrentBatsman(1)">1</button>
-              <button onclick="flashButton(this); scoreCurrentBatsman(2)">2</button>
-              <button onclick="flashButton(this); scoreCurrentBatsman(3)">3</button>
-              <button onclick="flashButton(this); scoreCurrentBatsman(4)">4</button>
-              <button onclick="flashButton(this); scoreCurrentBatsman(6)">6</button>
-              <button onclick="flashButton(this); outCurrentBatsman()">OUT</button>
-              <button onclick="flashButton(this); retireCurrentBatsman()">RH</button>
-          </div>
-      </div>
+        <div class="pad-player" id="pad-player-name">
+            Select Bowler
+        </div>
+
+        <div id="batting-pad" class="pad-grid">
+            <button onclick="flashButton(this); scoreCurrentBatsman(0)">0</button>
+            <button onclick="flashButton(this); scoreCurrentBatsman(1)">1</button>
+            <button onclick="flashButton(this); scoreCurrentBatsman(2)">2</button>
+            <button onclick="flashButton(this); scoreCurrentBatsman(3)">3</button>
+            <button onclick="flashButton(this); scoreCurrentBatsman(4)">4</button>
+            <button onclick="flashButton(this); scoreCurrentBatsman(6)">6</button>
+            <button onclick="flashButton(this); outCurrentBatsman()">OUT</button>
+            <button onclick="flashButton(this); retireCurrentBatsman()">RH</button>
+        </div>
+
+        <div id="current-over-display" class="current-over-display">
+            Current Over: -
+        </div>
+
+        <div id="bowling-pad" class="pad-grid" style="display:none;">
+            <button onclick="flashButton(this); bowlingRuns(0)">●</button>
+            <button onclick="flashButton(this); bowlingRuns(1)">1</button>
+            <button onclick="flashButton(this); bowlingRuns(2)">2</button>
+            <button onclick="flashButton(this); bowlingRuns(3)">3</button>
+
+            <button onclick="flashButton(this); bowlingRuns(4)">4</button>
+            <button onclick="flashButton(this); bowlingRuns(6)">6</button>
+            <button onclick="flashButton(this); bowlingWicket()">W</button>
+            <button onclick="flashButton(this); bowlingExtra('wide',1)">WD</button>
+
+            <button onclick="flashButton(this); bowlingExtra('noball',1)">NB</button>
+            <button onclick="flashButton(this); bowlingExtra('bye',1)">BYE</button>
+        </div>
+
+    </div>
 
 
 
@@ -2905,6 +2955,65 @@
         return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       }
 
+      function updateCurrentOverDisplay() {
+
+          const el =
+              document.getElementById('current-over-display');
+
+          if (!el) return;
+
+          const balls = [];
+          let legalBalls = 0;
+
+          for (let i = history.length - 1; i >= 0; i--) {
+
+              const ev = history[i];
+
+              if (ev.type === 'bowlingRuns') {
+
+                  balls.unshift(
+                      ev.runs === 0 ? '●' : String(ev.runs)
+                  );
+
+                  legalBalls++;
+
+              } else if (ev.type === 'bowlingWicket') {
+
+                  balls.unshift('W');
+
+                  legalBalls++;
+
+              } else if (ev.type === 'extra') {
+
+                  if (ev.extraKey === 'wide') {
+                      balls.unshift('WD');
+                  }
+                  else if (ev.extraKey === 'noball') {
+                      balls.unshift('NB');
+                  }
+                  else if (ev.extraKey === 'bye') {
+
+                      balls.unshift(
+                          ev.runs > 1
+                              ? 'B' + ev.runs
+                              : 'B'
+                      );
+
+                      legalBalls++;
+                  }
+              }
+
+              if (legalBalls >= settings.legalBallsPerOver) {
+                  break;
+              }
+          }
+
+          el.textContent =
+              balls.length
+                  ? 'Current Over: ' + balls.join(' ')
+                  : 'Current Over: -';
+      }
+
       function buildBatsmenRows() {
         let html = '';
         const visibleIndices = getVisibleBatsmanIndices();
@@ -3018,7 +3127,8 @@
         updateInningsBanner();
         updateInningsButton();
         updateTeamBadges();
-        updateScoringPad();
+        updateMobilePad();
+        updateCurrentOverDisplay();
       }
 
       function updateStrikeWarning() {
@@ -3265,9 +3375,9 @@
                     '⚠️ OVER COMPLETE - SELECT NEXT BOWLER';
             }
 
-            if (appMode === 'full') {
-                  currentBowlerIndex = null;
-              }
+            if (appMode !== 'batting') {
+              currentBowlerIndex = null;
+          }
         }
 
       function toggleOut(rowIndex) {
@@ -3941,6 +4051,51 @@
         } else {
           fallbackCopy(text);
         }
+      }
+
+      function updateMobilePad() {
+
+          const battingPad =
+              document.getElementById('batting-pad');
+
+          const bowlingPad =
+              document.getElementById('bowling-pad');
+
+          const header =
+              document.getElementById('pad-player-name');
+
+          if (appMode === 'bowling') {
+
+              battingPad.style.display = 'none';
+              bowlingPad.style.display = 'grid';
+
+              if (currentBowlerIndex !== null) {
+
+                  const bowler =
+                      bowlers[currentBowlerIndex];
+
+                  const overs =
+                      Math.floor(bowler.balls / settings.legalBallsPerOver);
+
+                  const balls =
+                      bowler.balls % settings.legalBallsPerOver;
+
+                  header.textContent =
+                      `⚾ ${bowler.name || `Bowler ${currentBowlerIndex + 1}`}  ${overs}.${balls} ov`;
+
+              } else {
+
+                  header.textContent =
+                      '⚠️ Select Bowler';
+              }
+
+          } else {
+
+              battingPad.style.display = 'grid';
+              bowlingPad.style.display = 'none';
+
+              updateScoringPad();
+          }
       }
 
       function fallbackCopy(text) {
