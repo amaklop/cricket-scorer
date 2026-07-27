@@ -117,6 +117,11 @@
           letter-spacing: 2px;
       }
 
+      .bowling-extra-active {
+          box-shadow: 0 0 0 4px #f1c40f;
+          transform: scale(1.05);
+      }
+
       .bowling-panel {
         display: none;
       }
@@ -224,6 +229,7 @@
       #bowling-pad button:nth-child(10) {
           background: #8e44ad;
       }
+      
 
       .settings-panel {
         background: white;
@@ -585,6 +591,27 @@
         opacity: 0.7;
         font-weight: 400;
         font-style: italic;
+      }
+
+      .no-bowler-warning {
+          animation: noBowlerFlash 0.8s ease;
+      }
+
+      @keyframes noBowlerFlash {
+          0%, 100% {
+              background: #16a085;
+          }
+
+          25%,
+          75% {
+              background: #e74c3c;
+              color: white;
+          }
+
+          50% {
+              background: #f1c40f;
+              color: #2c3e50;
+          }
       }
 
       .warning-banner {
@@ -2236,27 +2263,7 @@
         <div class="current-bowler-banner" id="current-bowler-banner"><span class="none">No bowler selected — tap "Bowl" next to a bowler below</span></div>
         <div class="warning-banner hidden" id="strike-warning">⚠️ Non-striker not set — tap another batsman's number circle</div>
       </div>
-      <div class="bowling-panel">
-        <div class="bp-title">⚾ Log Each Delivery</div>
-        <div class="bp-row">
-          <div class="bp-label">Runs off bat <span class="bp-count" id="bp-runs">0</span></div>
-          <div class="run-buttons" id="bp-runs-buttons"></div>
-        </div>
-        <div class="bp-row">
-          <div class="bp-label">Wide <span class="bp-count" id="bp-wide">0</span></div>
-          <div class="run-buttons" id="bp-wide-buttons"></div>
-        </div>
-        <div class="bp-row">
-          <div class="bp-label">No-ball <span class="bp-count" id="bp-nb">0</span></div>
-          <div class="run-buttons" id="bp-nb-buttons"></div>
-        </div>
-        <div class="bp-row">
-          <div class="bp-label">Byes <span class="bp-count" id="bp-bye">0</span></div>
-          <div class="run-buttons" id="bp-bye-buttons"></div>
-        </div>
-        <div class="bp-row" style="justify-content: center; margin-top: 8px;"><button class="wicket-btn" onclick="bowlingWicket()">🎯 WICKET</button></div>
-        <div class="bp-hint">Every ball is charged to the current bowler.</div>
-      </div>
+      
       <div class="batsmen-section">
         <h2>Batsmen &amp; Extras</h2>
         <div style="font-size:12px;color:#777;margin-bottom:8px;font-style:italic">
@@ -2319,7 +2326,8 @@
             Current Over: -
         </div>
 
-        <div id="bowling-pad" class="pad-grid" style="display:none;">
+        <div id="bowling-pad" class="pad-grid">
+
             <button onclick="flashButton(this); bowlingRuns(0)">●</button>
             <button onclick="flashButton(this); bowlingRuns(1)">1</button>
             <button onclick="flashButton(this); bowlingRuns(2)">2</button>
@@ -2328,15 +2336,48 @@
             <button onclick="flashButton(this); bowlingRuns(4)">4</button>
             <button onclick="flashButton(this); bowlingRuns(6)">6</button>
             <button onclick="flashButton(this); bowlingWicket()">W</button>
-            <button onclick="flashButton(this); bowlingExtra('wide',1)">WD</button>
 
-            <button onclick="flashButton(this); bowlingExtra('noball',1)">NB</button>
-            <button onclick="flashButton(this); bowlingExtra('bye',1)">BYE</button>
+            <button onclick="openExtraModal('wide')">
+    WD
+            </button>
+
+            <button onclick="openExtraModal('noball')">
+                NB
+            </button>
+
+            <button onclick="openExtraModal('bye')">
+                LB
+            </button>
+
         </div>
 
-    </div>
+        <div id="extra-runs-pad" class="pad-grid" style="display:none;">
 
+            <button onclick="recordSelectedExtra(1)">1</button>
+            <button onclick="recordSelectedExtra(2)">2</button>
+            <button onclick="recordSelectedExtra(3)">3</button>
+            <button onclick="recordSelectedExtra(4)">4</button>
 
+        </div>
+
+      </div>
+
+      <div class="modal-backdrop hidden" id="extra-modal">
+          <div class="modal-box">
+              <div class="modal-title" id="extra-modal-title">
+                  Select Runs
+              </div>
+
+              <div id="extra-modal-buttons"
+                  class="wicket-grid">
+              </div>
+
+              <button class="modal-cancel"
+                      onclick="cancelExtraSelection()">
+                  Cancel
+              </button>
+          </div>
+      </div>
 
       <div class="actions">
         <button class="action-btn undo-btn" onclick="undo()">↶ Undo Last</button>
@@ -2480,6 +2521,8 @@
       // "Team A" / "Team B" when empty in displays and export.
       let teamA = '',
         teamB = '';
+
+      let selectedBowlingExtra = null;
 
       function battingTeamName() {
         // Batting team is A during innings 1, B during innings 2
@@ -2658,37 +2701,19 @@
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         const activeBtn = document.getElementById('mode-' + mode);
         if (activeBtn) activeBtn.classList.add('active');
-        buildBowlingPanel();
         saveState();
-      }
-
-      function buildBowlingPanel() {
-        const runsHTML = BATSMAN_RUNS.map(v => `<button class="run-btn ${runBtnClass(v)}" onclick="flashButton(this); bowlingRuns(${v})">${v}</button>`).join('');
-        const wideHTML = WIDE_RUNS.map(v => `<button class="run-btn ${runBtnClass(v)}" onclick="flashButton(this); bowlingExtra('wide', ${v})">${v}</button>`).join('');
-        const nbHTML = NB_RUNS.map(v => `<button class="run-btn ${runBtnClass(v)}" onclick="flashButton(this); bowlingExtra('noball', ${v})">${v}</button>`).join('');
-        const byeHTML = BYE_RUNS.map(v => `<button class="run-btn ${runBtnClass(v)}" onclick="flashButton(this); bowlingExtra('bye', ${v})">${v}</button>`).join('');
-        document.getElementById('bp-runs-buttons').innerHTML = runsHTML;
-        document.getElementById('bp-wide-buttons').innerHTML = wideHTML;
-        document.getElementById('bp-nb-buttons').innerHTML = nbHTML;
-        document.getElementById('bp-bye-buttons').innerHTML = byeHTML;
-        updateBowlingPanelCounts();
-      }
-
-      function updateBowlingPanelCounts() {
-        let bpRuns = 0;
-        for (const ev of history)
-          if (ev.type === 'bowlingRuns') bpRuns += ev.runs;
-        if (document.getElementById('bp-runs')) document.getElementById('bp-runs').textContent = bpRuns;
-        if (document.getElementById('bp-wide')) document.getElementById('bp-wide').textContent = extras.wide;
-        if (document.getElementById('bp-nb')) document.getElementById('bp-nb').textContent = extras.noball;
-        if (document.getElementById('bp-bye')) document.getElementById('bp-bye').textContent = extras.bye;
+        updateMobilePad();
       }
 
       function bowlingRuns(runs) {
         const bowlerIdx = currentBowlerIndex;
         if (bowlerIdx === null) {
-          showStatus('⚠️ Select a bowler first');
-          return;
+
+            showStatus('⚠️ Select a bowler first');
+
+            flashNoBowlerWarning();
+
+            return;
         }
         history.push({
           type: 'bowlingRuns',
@@ -3078,6 +3103,26 @@
         return null;
       }
 
+      function flashNoBowlerWarning() {
+
+          const banner =
+              document.getElementById('current-bowler-banner');
+
+          if (!banner) return;
+
+          banner.classList.remove('no-bowler-warning');
+          void banner.offsetWidth;
+          banner.classList.add('no-bowler-warning');
+
+          if (navigator.vibrate) {
+              navigator.vibrate([80, 40, 80]);
+          }
+
+          setTimeout(() => {
+              banner.classList.remove('no-bowler-warning');
+          }, 800);
+      }
+
       function getBowlerDisplayOrder() {
         const order = [];
         const seen = new Set();
@@ -3123,7 +3168,6 @@
         updateStrikeWarning();
         updateScoreboard();
         updateMatchInfo();
-        updateBowlingPanelCounts();
         updateInningsBanner();
         updateInningsButton();
         updateTeamBadges();
@@ -3203,6 +3247,16 @@
       }
 
       function recordExtra(key, runs) {
+        
+        if (appMode === 'bowling' && currentBowlerIndex === null) {
+
+            showStatus('⚠️ Select a bowler first');
+
+            flashNoBowlerWarning();
+
+            return;
+        }
+        
         const bowlerIdx = currentBowlerIndex,
           onStrikeIdx = onStrikeIndex,
           extrasWasBall = countExtrasAsBalls;
@@ -3219,6 +3273,8 @@
         const et = EXTRAS_TYPES.find(t => t.key === key);
         const isLegal = isLegalBallForExtra(key);
         extras[key] += runs;
+        
+
         if (extrasWasBall && onStrikeIdx !== null && batsmen[onStrikeIdx] && !batsmen[onStrikeIdx].out) batsmen[onStrikeIdx].balls += 1;
         if (bowlerIdx !== null) {
           if (isLegal) bowlers[bowlerIdx].balls += 1;
@@ -3413,8 +3469,12 @@
       function bowlingWicket() {
         const bowlerIdx = currentBowlerIndex;
         if (bowlerIdx === null) {
-          showStatus('⚠️ Select a bowler first');
-          return;
+
+            showStatus('⚠️ Select a bowler first');
+
+            flashNoBowlerWarning();
+
+            return;
         }
         pendingWicket = {
           source: 'bowling'
@@ -3600,14 +3660,28 @@
       }
 
       function updateCurrentBowlerBanner() {
-        const el = document.getElementById('current-bowler-banner');
-        if (currentBowlerIndex === null) el.innerHTML = `<span class="none">No bowler selected — tap "Bowl" next to a bowler below</span>`;
-        else {
-          const bw = bowlers[currentBowlerIndex];
-          const name = bw.name || `Bowler ${currentBowlerIndex + 1}`;
-          el.textContent = `⚾ Bowling: ${name}`;
+
+        const el =
+            document.getElementById('current-bowler-banner');
+
+        if (currentBowlerIndex === null) {
+
+            el.classList.remove('bowler-change-required');
+
+            el.innerHTML =
+                '<span class="none">No bowler selected — tap "Bowl" next to a bowler below</span>';
+
+            return;
         }
-      }
+
+        const bw = bowlers[currentBowlerIndex];
+        const name =
+            bw.name || `Bowler ${currentBowlerIndex + 1}`;
+
+        el.classList.remove('bowler-change-required');
+
+        el.textContent = `⚾ Bowling: ${name}`;
+    }
       // Compute the current innings' running totals (works for all three modes)
       function getInningsTotals() {
         const batRuns = batsmen.reduce((s, b) => s + b.runs, 0);
@@ -3816,6 +3890,13 @@
         targetScore = 0;
         teamA = '';
         teamB = '';
+
+        const banner = document.getElementById('current-bowler-banner');
+
+        if (banner) {
+            banner.classList.remove('bowler-change-required');
+        }
+
         writeSettingsToUI();
         buildAll();
         showStatus('New match started');
@@ -4053,6 +4134,69 @@
         }
       }
 
+      function openExtraModal(type) {
+
+          selectedBowlingExtra = type;
+
+          const title =
+              document.getElementById('extra-modal-title');
+
+          const buttons =
+              document.getElementById('extra-modal-buttons');
+
+          let runs = [];
+
+          if (type === 'wide') {
+              title.textContent = '🎳 Wide';
+              runs = [1,2,3,4,5];
+          }
+
+          if (type === 'noball') {
+              title.textContent = '🎳 No Ball';
+              runs = [1,2,3,4,5,6];
+          }
+
+          if (type === 'bye') {
+              title.textContent = '👖 Leg Bye';
+              runs = [1,2,3,4];
+          }
+
+          buttons.innerHTML =
+              runs.map(r =>
+                  `<button class="wicket-choice"
+                          onclick="recordExtraFromModal(${r})">
+                          ${r}
+                  </button>`
+              ).join('');
+
+          document
+              .getElementById('extra-modal')
+              .classList.remove('hidden');
+      }
+
+      function recordExtraFromModal(runs) {
+
+          bowlingExtra(
+              selectedBowlingExtra,
+              runs
+          );
+
+          document
+              .getElementById('extra-modal')
+              .classList.add('hidden');
+
+          selectedBowlingExtra = null;
+      }
+
+      function cancelExtraSelection() {
+
+          document
+              .getElementById('extra-modal')
+              .classList.add('hidden');
+
+          selectedBowlingExtra = null;
+      }
+
       function updateMobilePad() {
 
           const battingPad =
@@ -4063,11 +4207,21 @@
 
           const header =
               document.getElementById('pad-player-name');
+          
+          const currOverDisplay = document.getElementById('current-over-display');
+
+          if (appMode === 'batting') {
+            currOverDisplay.style.display = 'none';
+          }
+          else {
+            currOverDisplay.style.display = 'block';
+          }
 
           if (appMode === 'bowling') {
 
               battingPad.style.display = 'none';
               bowlingPad.style.display = 'grid';
+              currOverDisplay.style.display = 'block';
 
               if (currentBowlerIndex !== null) {
 
@@ -4080,8 +4234,16 @@
                   const balls =
                       bowler.balls % settings.legalBallsPerOver;
 
+                  const oversFloat =
+                      bowler.balls / settings.legalBallsPerOver;
+
+                  const economy =
+                      oversFloat > 0
+                          ? (bowler.runs / oversFloat).toFixed(2)
+                          : '0.00';
+
                   header.textContent =
-                      `⚾ ${bowler.name || `Bowler ${currentBowlerIndex + 1}`}  ${overs}.${balls} ov`;
+                      `🔴 ${bowler.name || `Bowler ${currentBowlerIndex + 1}`} | ${bowler.wickets}/${bowler.runs} | ${overs}.${balls} ov | Econ ${economy}`;
 
               } else {
 
@@ -4093,9 +4255,86 @@
 
               battingPad.style.display = 'grid';
               bowlingPad.style.display = 'none';
+              currOverDisplay.style.display = 'none';
 
               updateScoringPad();
           }
+
+
+      }
+
+      function selectBowlingExtra(type) {
+
+          selectedBowlingExtra = type;
+
+          document.getElementById('extra-runs-pad').style.display = 'grid';
+
+          document
+              .getElementById('wide-btn')
+              .classList.remove('bowling-extra-active');
+
+          document
+              .getElementById('nb-btn')
+              .classList.remove('bowling-extra-active');
+
+          document
+              .getElementById('lb-btn')
+              .classList.remove('bowling-extra-active');
+
+          if (type === 'wide') {
+              document
+                  .getElementById('wide-btn')
+                  .classList.add('bowling-extra-active');
+          }
+
+          if (type === 'noball') {
+              document
+                  .getElementById('nb-btn')
+                  .classList.add('bowling-extra-active');
+          }
+
+          if (type === 'bye') {
+              document
+                  .getElementById('lb-btn')
+                  .classList.add('bowling-extra-active');
+          }
+
+          showStatus(
+              'Select runs for ' +
+              type.toUpperCase()
+          );
+      }
+
+      function recordSelectedExtra(runs) {
+
+          if (!selectedBowlingExtra) {
+
+              showStatus(
+                  'Select WD, NB or LB first'
+              );
+
+              return;
+          }
+
+          bowlingExtra(
+              selectedBowlingExtra,
+              runs
+          );
+
+          selectedBowlingExtra = null;
+          document.getElementById('extra-runs-pad').style.display = 'none';
+
+          document
+              .getElementById('wide-btn')
+              .classList.remove('bowling-extra-active');
+
+          document
+              .getElementById('nb-btn')
+              .classList.remove('bowling-extra-active');
+
+          document
+              .getElementById('lb-btn')
+              .classList.remove('bowling-extra-active');
       }
 
       function fallbackCopy(text) {
@@ -4285,7 +4524,6 @@
       loadState();
       writeSettingsToUI();
       updatePresetHighlight();
-      buildBowlingPanel();
       setMode(appMode);
       buildAll();
     </script>
